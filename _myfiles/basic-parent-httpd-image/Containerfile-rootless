@@ -1,0 +1,31 @@
+FROM ubi8/ubi:8.5
+
+ARG DOCROOT=/var/www/html
+ARG SRC_OVERRIDE=src
+
+LABEL description="A basic PARENT Apache HTTP Server image. \
+When building a child image, ${DOCROOT} content will be overriden by \
+content from your local directory ${SRC_OVERRIDE}" \
+      io.k8s.display-name="Apache HTTP Server" \
+      io.openshift.expose-services="8080:http" \
+      io.openshift.tags="apache, httpd"
+
+ENV DOCROOT=${DOCROOT}
+
+RUN yum install -y --nodocs --disableplugin=subscription-manager httpd && \
+    yum clean all -y --disableplugin=subscription-manager && \
+    echo "Hello from the basic rootless PARENT httpd container" > ${DOCROOT}/index.html && \
+    sed -i "s/Listen 80/Listen 8080/g" /etc/httpd/conf/httpd.conf && \
+    sed -i "s/#ServerName www.example.com:80/ServerName 0.0.0.0:8080/g" /etc/httpd/conf/httpd.conf && \
+    rm -rf /run/httpd && mkdir -p /run/httpd && \
+    chgrp -R 0 /var /run /tmp /etc /usr && \
+    chmod -R g=u /var /run /tmp /etc /usr
+      
+ONBUILD COPY ${SRC_OVERRIDE}/ ${DOCROOT}/
+
+EXPOSE 8080
+
+USER 1001
+
+# Launch httpd
+CMD ["httpd", "-D", "FOREGROUND"]
