@@ -1,0 +1,1 @@
+FROM quay.io/pkrokavec/httpd-ubi8-parent-rootless:latest
